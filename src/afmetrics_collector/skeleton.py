@@ -18,11 +18,14 @@ References:
 import argparse
 import logging
 import sys
+import requests
+import socket
 
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users
+from afmetrics_collector.condor import get_condor_users
 
 __author__ = "Fengping Hu"
 __copyright__ = "Fengping Hu"
@@ -69,6 +72,13 @@ def parse_args(args):
         help="collect jupyter metrics",
         default=False)
     parser.add_argument(
+        "-b",
+        "--batch",
+        action="store_true",
+        dest="batch",
+        help="collect batch(condor) metrics",
+        default=False)
+    parser.add_argument(
         "-n",
         "--namespace",
         dest="ns",
@@ -83,7 +93,22 @@ def parse_args(args):
         help="label of jupyter pods",
         default="owner",
         type=str)
-
+    parser.add_argument(
+        "-t",
+        "--token",
+        dest="token",
+        help="logstash token",
+        #default="af-jupyter",
+        type=str,
+    )
+    parser.add_argument(
+        "-u",
+        "--url",
+        dest="url",
+        help="logstash url",
+        default="https://af.atlas-ml.org/",
+        type=str,
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -126,15 +151,64 @@ def main(args):
           (for example  ``["--verbose", "42"]``).
     """
     args = parse_args(args)
+    url = args.url
+    token = args.token
     setup_logging(args.loglevel)
     if args.jupyter:
-        _logger.info("collecting jupyter metrics")
+        _logger.info("collecting jupyter-ml metrics")
         users=get_jupyter_users(args.ns, args.label)
-        _logger.info("af jupyter users: %s", users)
+        _logger.info("af jupyter-ml users: %s", users)
+
+        myobj = {'token': token,
+                 'kind': 'jupyter-ml',
+                 'cluster': 'UC-AF',
+                 'jupyter_user_count': len(users),
+                 'users': users}
+        _logger.debug("post to logstash: %s", myobj)
+        resp = requests.post(url, json=myobj)
+        _logger.debug("post status_code:%d",resp.status_code)
+
+        #_logger.info("collecting jupyter-coffea metrics")
+        #users=get_jupyter_users("coffea-casa", "jhub_user")
+        #_logger.info("af jupyter-coffea users: %s", users)
+
+        myobj = {'token': token,
+                 'kind': 'jupyter-coffea',
+                 'cluster': 'UC-AF',
+                 'jupyter_user_count': len(users),
+                 'users': users}
+        #_logger.debug("post to logstash: %s", myobj)
+        #resp = requests.post(url, json=myobj)
+        #_logger.debug("post status_code:%d",resp.status_code)
+
     if args.ssh:
         _logger.info("collecting ssh metrics")
         users=get_ssh_users()
         _logger.info("af ssh users: %s", users)
+
+        myobj = {'token': token,
+                 'kind': 'ssh',
+                 'cluster': 'UC-AF',
+                 'login_node': socket.gethostname(),
+                 'ssh_user_count': len(users),
+                 'users': users}
+        _logger.debug("post to logstash: %s", myobj)
+        resp = requests.post(url, json=myobj)
+        _logger.debug("post status_code:%d",resp.status_code)
+
+    if args.batch:
+        _logger.info("collecting batch metrics")
+        users=get_condor_users()
+        _logger.info("af batch users: %s", users)
+
+        myobj = {'token': token,
+                 'kind': 'condor',
+                 'cluster': 'UC-AF',
+                 'condor_user_count': len(users),
+                 'users': users}
+        _logger.debug("post to logstash: %s", myobj)
+        resp = requests.post(url, json=myobj)
+        _logger.debug("post status_code:%d",resp.status_code)
 
 
     _logger.info("Script ends here")

@@ -33,7 +33,7 @@ def get_jupyter_users(namespace, label):
     for i in ret.items:
         _logger.debug("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
     users = []
-    [users.append(i.metadata.labels['owner']) for i in ret.items if i.metadata.labels['owner'] not in users]
+    [users.append(i.metadata.labels[label]) for i in ret.items if i.metadata.labels[label] not in users]
     _logger.debug("users:%s", users )
     return users
 
