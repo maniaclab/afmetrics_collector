@@ -25,7 +25,7 @@ from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users
-from afmetrics_collector.condor import get_condor_users
+from afmetrics_collector.condor import get_condor_users, get_condor_history
 
 __author__ = "Fengping Hu"
 __copyright__ = "Fengping Hu"
@@ -168,18 +168,18 @@ def main(args):
         resp = requests.post(url, json=myobj)
         _logger.debug("post status_code:%d",resp.status_code)
 
-        #_logger.info("collecting jupyter-coffea metrics")
-        #users=get_jupyter_users("coffea-casa", "jhub_user")
-        #_logger.info("af jupyter-coffea users: %s", users)
+        _logger.info("collecting jupyter-coffea metrics")
+        users=get_jupyter_users("coffea-casa", "jhub_user")
+        _logger.info("af jupyter-coffea users: %s", users)
 
         myobj = {'token': token,
                  'kind': 'jupyter-coffea',
                  'cluster': 'UC-AF',
                  'jupyter_user_count': len(users),
                  'users': users}
-        #_logger.debug("post to logstash: %s", myobj)
-        #resp = requests.post(url, json=myobj)
-        #_logger.debug("post status_code:%d",resp.status_code)
+        _logger.debug("post to logstash: %s", myobj)
+        resp = requests.post(url, json=myobj)
+        _logger.debug("post status_code:%d",resp.status_code)
 
     if args.ssh:
         _logger.info("collecting ssh metrics")
@@ -197,7 +197,7 @@ def main(args):
         _logger.debug("post status_code:%d",resp.status_code)
 
     if args.batch:
-        _logger.info("collecting batch metrics")
+        _logger.info("collecting batch metrics - current users")
         users=get_condor_users()
         _logger.info("af batch users: %s", users)
 
@@ -209,6 +209,19 @@ def main(args):
         _logger.debug("post to logstash: %s", myobj)
         resp = requests.post(url, json=myobj)
         _logger.debug("post status_code:%d",resp.status_code)
+
+        _logger.info("collecting batch metrics - job history")
+        jobs=get_condor_history(since_insecs=360)
+        _logger.info("af finished batch jobs: %s", jobs)
+        for job in jobs:
+            myobj = {'token': token,
+                     'kind': 'condorjob',
+                     'cluster': 'UC-AF'}
+            myobj.update(job)
+            _logger.debug("post to logstash: %s", myobj)
+            resp = requests.post(url, json=myobj)
+            _logger.debug("post status_code:%d",resp.status_code)
+
 
 
     _logger.info("Script ends here")

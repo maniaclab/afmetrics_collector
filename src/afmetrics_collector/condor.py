@@ -6,7 +6,7 @@ Please install the pick library before running this example.
 
 import subprocess
 import logging
-
+import time
 
 _logger = logging.getLogger(__name__)
 
@@ -23,6 +23,24 @@ def get_condor_users():
             if u.decode("utf-8") not in users and u.decode("utf-8") != "atlas-coffea"]
     #print(users)
     return users
+
+def get_condor_history(JobStatus=4, since_insecs=360):
+
+    now = time.time()
+    keys = ["users", "Id", "Runtime"]
+    constraint = 'JobStatus=={} && JobFinishedHookDone>={} && Owner =!= \"{}\"'.format(
+                         JobStatus, now - since_insecs, 'atlas-coffea')
+    #print(cons)
+    #'-completedsince', str(now - since_insecs) not working?
+    process = subprocess.Popen(['condor_history',
+                                #'-completedsince', str(now - since_insecs),
+                                '-constraint', constraint,
+                                '-format',"%s ", 'Owner', '-format', "%d.", 'ClusterId', '-format', "%d ",
+                                'ProcId', '-format', "%d \n", 'RemoteWallClockTime'],
+                               stdout=subprocess.PIPE)
+    jobs = [dict(zip(keys,l.decode("utf-8").split())) for l in process.stdout.readlines()]
+    #print(jobs)
+    return jobs
 
 def main():
     get_condor_users()
