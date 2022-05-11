@@ -102,6 +102,14 @@ def parse_args(args):
         type=str,
     )
     parser.add_argument(
+        "-c",
+        "--cluster",
+        dest="cluster",
+        help="the name of the af cluster",
+        default="UC-AF",
+        type=str,
+    )
+    parser.add_argument(
         "-u",
         "--url",
         dest="url",
@@ -153,6 +161,7 @@ def main(args):
     args = parse_args(args)
     url = args.url
     token = args.token
+    cluster = args.cluster
     setup_logging(args.loglevel)
     if args.jupyter:
         _logger.info("collecting jupyter-ml metrics")
@@ -161,7 +170,7 @@ def main(args):
 
         myobj = {'token': token,
                  'kind': 'jupyter-ml',
-                 'cluster': 'UC-AF',
+                 'cluster': cluster,
                  'jupyter_user_count': len(users),
                  'users': users}
         _logger.debug("post to logstash: %s", myobj)
@@ -174,7 +183,7 @@ def main(args):
 
         myobj = {'token': token,
                  'kind': 'jupyter-coffea',
-                 'cluster': 'UC-AF',
+                 'cluster': cluster,
                  'jupyter_user_count': len(users),
                  'users': users}
         _logger.debug("post to logstash: %s", myobj)
@@ -188,7 +197,7 @@ def main(args):
 
         myobj = {'token': token,
                  'kind': 'ssh',
-                 'cluster': 'UC-AF',
+                 'cluster': cluster,
                  'login_node': socket.gethostname(),
                  'ssh_user_count': len(users),
                  'users': users}
@@ -203,7 +212,7 @@ def main(args):
 
         myobj = {'token': token,
                  'kind': 'condor',
-                 'cluster': 'UC-AF',
+                 'cluster': cluster,
                  'condor_user_count': len(users),
                  'users': users}
         _logger.debug("post to logstash: %s", myobj)
@@ -216,7 +225,7 @@ def main(args):
         for job in jobs:
             myobj = {'token': token,
                      'kind': 'condorjob',
-                     'cluster': 'UC-AF'}
+                     'cluster': cluster}
             myobj.update(job)
             _logger.debug("post to logstash: %s", myobj)
             resp = requests.post(url, json=myobj)
