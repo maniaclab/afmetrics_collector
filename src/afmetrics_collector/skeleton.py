@@ -25,7 +25,7 @@ from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users
-from afmetrics_collector.condor import get_condor_users, get_condor_history
+from afmetrics_collector.condor import get_condor_users, get_condor_history, get_condor_jobs
 
 __author__ = "Fengping Hu"
 __copyright__ = "Fengping Hu"
@@ -207,25 +207,27 @@ def main(args):
 
     if args.batch:
         _logger.info("collecting batch metrics - current users")
-        users=get_condor_users()
-        _logger.info("af batch users: %s", users)
+        jobs=get_condor_jobs()
+        _logger.debug("af running batch jobs: %s", jobs)
 
-        myobj = {'token': token,
-                 'kind': 'condor',
-                 'cluster': cluster,
-                 'condor_user_count': len(users),
-                 'users': users}
-        _logger.debug("post to logstash: %s", myobj)
-        resp = requests.post(url, json=myobj)
-        _logger.debug("post status_code:%d",resp.status_code)
-
-        _logger.info("collecting batch metrics - job history")
-        jobs=get_condor_history(since_insecs=360)
-        _logger.info("af finished batch jobs: %s", jobs)
         for job in jobs:
             myobj = {'token': token,
                      'kind': 'condorjob',
-                     'cluster': cluster}
+                     'cluster': cluster,
+                     'state': 'running'}
+            myobj.update(job)
+            _logger.debug("post to logstash: %s", myobj)
+            resp = requests.post(url, json=myobj)
+            _logger.debug("post status_code:%d",resp.status_code)
+
+        _logger.info("collecting batch metrics - job history")
+        jobs=get_condor_history(since_insecs=360)
+        _logger.debug("af finished batch jobs: %s", jobs)
+        for job in jobs:
+            myobj = {'token': token,
+                     'kind': 'condorjob',
+                     'cluster': cluster,
+                     'state': 'finished'}
             myobj.update(job)
             _logger.debug("post to logstash: %s", myobj)
             resp = requests.post(url, json=myobj)

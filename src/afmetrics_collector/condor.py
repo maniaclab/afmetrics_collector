@@ -24,6 +24,23 @@ def get_condor_users():
     #print(users)
     return users
 
+def get_condor_jobs():
+
+    keys = ["users", "Id", "Runtime"]
+    constraint = 'Owner =!= \"{}\"'.format('atlas-coffea')
+    #print(cons)
+    #'-completedsince', str(now - since_insecs) not working?
+    process = subprocess.Popen(['condor_q',
+                                #'-completedsince', str(now - since_insecs),
+                                '-constraint', constraint,
+                                '-format',"%s ", 'Owner', '-format', "%d.", 'ClusterId', '-format', "%d ",
+                                'ProcId', '-format', "%d \n", 'RemoteWallClockTime'],
+                               stdout=subprocess.PIPE)
+    #jobs = [dict(zip(keys,l.decode("utf-8").split())) for l in process.stdout.readlines()]
+    jobs = [dict(zip(keys, [int(x) if i == 2 else x for i,x in enumerate(l.decode("utf-8").split())])) for l in process.stdout.readlines()]
+    #print(jobs)
+    return jobs
+
 def get_condor_history(JobStatus=4, since_insecs=360):
 
     now = time.time()
@@ -38,7 +55,7 @@ def get_condor_history(JobStatus=4, since_insecs=360):
                                 '-format',"%s ", 'Owner', '-format', "%d.", 'ClusterId', '-format', "%d ",
                                 'ProcId', '-format', "%d \n", 'RemoteWallClockTime'],
                                stdout=subprocess.PIPE)
-    jobs = [dict(zip(keys,l.decode("utf-8").split())) for l in process.stdout.readlines()]
+    jobs = [dict(zip(keys, [int(x) if i == 2 else x for i,x in enumerate(l.decode("utf-8").split())])) for l in process.stdout.readlines()]
     #print(jobs)
     return jobs
 
