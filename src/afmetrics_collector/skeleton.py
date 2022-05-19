@@ -1,6 +1,6 @@
 """
 This is a skeleton file that can serve as a starting point for a Python
-console script. 
+console script.
 
 # command verbose, collect ssh, jupyter metrics
 afmetrics_collector -v -s -j
@@ -9,7 +9,7 @@ Besides console scripts, the header (i.e. until ``_logger``...) of this file can
 also be used as template for Python modules.
 
 Note:
-    
+
 References:
     - https://setuptools.pypa.io/en/latest/userguide/entry_point.html
     - https://pip.pypa.io/en/stable/reference/pip_install
@@ -18,14 +18,14 @@ References:
 import argparse
 import logging
 import sys
-import requests
 import socket
+import requests
 
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users
-from afmetrics_collector.condor import get_condor_users, get_condor_history, get_condor_jobs
+from afmetrics_collector.condor import get_condor_history, get_condor_jobs
 
 __author__ = "Fengping Hu"
 __copyright__ = "Fengping Hu"

@@ -12,14 +12,15 @@ _logger = logging.getLogger(__name__)
 
 
 def get_ssh_users():
-    process = subprocess.Popen(['who'],
-                               stdout=subprocess.PIPE)
-    #for line in process.stdout.readlines():
-    #    line.decode("utf-8")
-    #    _logger.debug(line)
     users = []
-    [users.append(l.split()[0].decode("utf-8")) for l in process.stdout.readlines() 
-            if l.split()[0].decode("utf-8") not in users]
+    try:
+        with subprocess.Popen(['who'], stdout=subprocess.PIPE) as process:
+            any(users.append(l.split()[0].decode("utf-8")) for l in process.stdout.readlines()
+                    if l.split()[0].decode("utf-8") not in users)
+    except Exception as error:
+        _logger.error(error)
+
+    _logger.debug("ssh users: %s", users)
     return users
 
 def main():

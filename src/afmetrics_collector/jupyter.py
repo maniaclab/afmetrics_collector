@@ -8,7 +8,7 @@ Please install the pick library before running this example.
 import logging
 
 from kubernetes import client, config
-from kubernetes.client import configuration
+#from kubernetes.client import configuration
 
 _logger = logging.getLogger(__name__)
 
@@ -31,10 +31,11 @@ def get_jupyter_users(namespace, label):
     _logger.debug("Listing pods:")
     ret = v1.list_namespaced_pod(namespace, label_selector=label)
     for i in ret.items:
-        _logger.debug("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+        _logger.debug("%s\t%s\t%s", i.status.pod_ip, i.metadata.namespace, i.metadata.name)
     users = []
-    [users.append(i.metadata.labels[label]) for i in ret.items if i.metadata.labels[label] not in users]
-    _logger.debug("users:%s", users )
+    any(users.append(i.metadata.labels[label]) for i in ret.items
+            if i.metadata.labels[label] not in users)
+    _logger.debug("users:%s", users)
     return users
 
 def main():
