@@ -26,6 +26,7 @@ from afmetrics_collector import __version__
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users
 from afmetrics_collector.condor import get_condor_history, get_condor_jobs
+from afmetrics_collector.host import get_host_metrics
 
 __author__ = "Fengping Hu"
 __copyright__ = "Fengping Hu"
@@ -57,6 +58,12 @@ def parse_args(args):
         version="afmetrics_collector {ver}".format(ver=__version__),
     )
     #parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
+    parser.add_argument(
+        "--host",
+        action="store_true",
+        dest="host",
+        help="collect ssh metrics",
+        default=False)
     parser.add_argument(
         "-s",
         "--ssh",
@@ -204,6 +211,21 @@ def main(args):
         _logger.debug("post to logstash: %s", myobj)
         resp = requests.post(url, json=myobj)
         _logger.debug("post status_code:%d",resp.status_code)
+
+    if args.host:
+        _logger.info("collecting host metrics")
+        header = {'token': token,
+                  'kind': 'host',
+                  'cluster': cluster,
+                  'login_node': socket.gethostname()}
+
+        metrics = get_host_metrics(header=header)
+        _logger.debug("af host metrics: %s", metrics)
+
+        for metric in metrics:
+            _logger.debug("post to logstash: %s", metric)
+            resp = requests.post(url, json=metric)
+            _logger.debug("post status_code:%d",resp.status_code)
 
     if args.batch:
         _logger.info("collecting batch metrics - current users")
