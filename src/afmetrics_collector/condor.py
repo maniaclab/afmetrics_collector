@@ -14,7 +14,15 @@ _logger = logging.getLogger(__name__)
 def get_condor_jobs():
 
     jobs = []
-    keys = ["users", "Id", "Runtime"]
+    keys = ["users", "Id", "Runtime", "state"]
+    job_st = {"0": "unexpanded",
+              "1": "idle",
+              "2": "running",
+              "3": "removed",
+              "4": "finished",
+              "5": "held",
+              "6": "submission_err",
+             }
     constraint = 'Owner =!= \"{}\"'.format('atlas-coffea')
 
     #'-completedsince', str(now - since_insecs) not working?
@@ -25,10 +33,10 @@ def get_condor_jobs():
                                '-format',"%s ", 'Owner',
                                '-format', "%d.", 'ClusterId',
                                '-format', "%d ", 'ProcId',
-                               '-format', "%d \n", 'RemoteWallClockTime'],
+                               '-format', "%d ", 'RemoteWallClockTime',
+                               '-format', "%s \n", 'JobStatus'],
                                stdout=subprocess.PIPE) as process:
-
-            jobs = [dict(zip(keys, [int(x) if i == 2 else x
+            jobs = [dict(zip(keys, [int(x) if i == 2 else (job_st.get(x, "unknown") if i==3 else x)
                 for i,x in enumerate(l.decode("utf-8").split())]))
                 for l in process.stdout.readlines()]
     except Exception as error:
@@ -61,7 +69,6 @@ def get_condor_history(job_status=4, since_insecs=360):
 
 def main():
     get_condor_jobs()
-
 
 if __name__ == '__main__':
     main()

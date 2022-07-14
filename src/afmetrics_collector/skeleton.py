@@ -235,8 +235,7 @@ def main(args):
         for job in jobs:
             myobj = {'token': token,
                      'kind': 'condorjob',
-                     'cluster': cluster,
-                     'state': 'running'}
+                     'cluster': cluster}
             myobj.update(job)
             _logger.debug("post to logstash: %s", myobj)
             resp = requests.post(url, json=myobj)
