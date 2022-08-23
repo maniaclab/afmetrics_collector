@@ -21,6 +21,13 @@ import sys
 import socket
 import requests
 
+# Tom
+# only needed for testing
+import json
+
+# needed for obfuscation
+import hashlib
+
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
@@ -113,7 +120,8 @@ def parse_args(args):
         "--cluster",
         dest="cluster",
         help="the name of the af cluster",
-        default="UC-AF",
+        #default="UC-AF",
+        default="BNL-SDCC",
         type=str,
     )
     parser.add_argument(
@@ -121,7 +129,9 @@ def parse_args(args):
         "--url",
         dest="url",
         help="logstash url",
-        default="https://af.atlas-ml.org/",
+        #default="https://af.atlas-ml.org/",
+        #For debugging
+        default="http://localhost/",
         type=str,
     )
     parser.add_argument(
@@ -175,6 +185,10 @@ def main(args):
         users=get_jupyter_users(args.ns, args.label)
         _logger.info("af jupyter-ml users: %s", users)
 
+        # jupyter user hash
+        for i, x in enumerate(users):
+            users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
+            
         myobj = {'token': token,
                  'kind': 'jupyter-ml',
                  'cluster': cluster,
@@ -187,6 +201,10 @@ def main(args):
         _logger.info("collecting jupyter-coffea metrics")
         users=get_jupyter_users("coffea-casa", "jhub_user")
         _logger.info("af jupyter-coffea users: %s", users)
+
+        # jupyter-coffea user hash
+        for i, x in enumerate(users):
+            users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
 
         myobj = {'token': token,
                  'kind': 'jupyter-coffea',
@@ -202,22 +220,37 @@ def main(args):
         users=get_ssh_users()
         _logger.info("af ssh users: %s", users)
 
+        # ssh user hash
+        for i, x in enumerate(users):
+            users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
+        # atlas BNL ssh host obfuscation
+        ssh_host_name = ''.join(['atlas',''.join([n for n in socket.gethostname() if n.isdigit()]),'.bnl.gov'])
+
         myobj = {'token': token,
                  'kind': 'ssh',
                  'cluster': cluster,
-                 'login_node': socket.gethostname(),
+                 #'login_node': socket.gethostname(),
+                 'login_node': ssh_host_name,
                  'ssh_user_count': len(users),
                  'users': users}
-        _logger.debug("post to logstash: %s", myobj)
-        resp = requests.post(url, json=myobj)
-        _logger.debug("post status_code:%d",resp.status_code)
+        #_logger.debug("post to logstash: %s", myobj)
+        #resp = requests.post(url, json=myobj)
+        #_logger.debug("post status_code:%d",resp.status_code)
+        
+        # For debugging purposes:
+        json_object = json.dumps(myobj, indent=4)
+        with open("test.json", "a") as outfile:
+            outfile.write(json_object)
 
     if args.host:
         _logger.info("collecting host metrics")
+        # atlas BNL host obfuscation
+        login_host_name = ''.join(['atlas',''.join([n for n in socket.gethostname() if n.isdigit()]),'.bnl.gov'])
         header = {'token': token,
                   'kind': 'host',
                   'cluster': cluster,
-                  'login_node': socket.gethostname()}
+                  #'login_node': socket.gethostname()}
+                  'login_node': login_host_name }
 
         metrics = get_host_metrics(header=header)
         _logger.debug("af host metrics: %s", metrics)
@@ -237,9 +270,13 @@ def main(args):
                      'kind': 'condorjob',
                      'cluster': cluster}
             myobj.update(job)
-            _logger.debug("post to logstash: %s", myobj)
-            resp = requests.post(url, json=myobj)
-            _logger.debug("post status_code:%d",resp.status_code)
+            myobj.update([('users',hashlib.sha256(myobj.get('users').encode('utf-8')).hexdigest()[:8])])
+            #_logger.debug("post to logstash: %s", myobj)
+            #resp = requests.post(url, json=myobj)
+            #_logger.debug("post status_code:%d",resp.status_code)
+            json_object = json.dumps(myobj, indent=4)
+            with open("test.json", "a") as outfile:
+                outfile.write(json_object)
 
         _logger.info("collecting batch metrics - job history")
         jobs=get_condor_history(since_insecs=360)
@@ -250,9 +287,13 @@ def main(args):
                      'cluster': cluster,
                      'state': 'finished'}
             myobj.update(job)
-            _logger.debug("post to logstash: %s", myobj)
-            resp = requests.post(url, json=myobj)
-            _logger.debug("post status_code:%d",resp.status_code)
+            myobj.update([('users',hashlib.sha256(myobj.get('users').encode('utf-8')).hexdigest()[:8])])
+            #_logger.debug("post to logstash: %s", myobj)
+            #resp = requests.post(url, json=myobj)
+            #_logger.debug("post status_code:%d",resp.status_code)
+            json_object = json.dumps(myobj, indent=4)
+            with open("test.json", "a") as outfile:
+                outfile.write(json_object)
 
 
 
