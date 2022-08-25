@@ -163,7 +163,7 @@ def parse_args(args):
         "-O",
         "--obfuscate-hosts",
         dest="obf_hosts",
-        help="alter the hostnames before sending to logstash",
+        help="alter the hostnames before sending to logstash (usage -O \"<domain_name>\")",
         default="",
         type=str,
     )
@@ -174,6 +174,14 @@ def parse_args(args):
         dest="debug_local",
         help="output to a local json file in current directory",
         default=False,
+    )
+    parser.add_argument(
+        "-z",
+        "--salt",
+        dest="salt",
+        help="add salt to user name hash for added security (usage --salt \"<salt>\")",
+        default="",
+        type=str,
     )
     return parser.parse_args(args)
 
@@ -213,7 +221,7 @@ def main(args):
         if args.obf_users:
             # jupyter user hash
             for i, x in enumerate(users):
-                users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
             
         myobj = {'token': token,
                  'kind': 'jupyter-ml',
@@ -238,7 +246,7 @@ def main(args):
         if args.obf_users:
             # jupyter-coffea user hash
             for i, x in enumerate(users):
-                users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
 
         myobj = {'token': token,
                  'kind': 'jupyter-coffea',
@@ -263,7 +271,7 @@ def main(args):
         if args.obf_users:
             # ssh user hash
             for i, x in enumerate(users):
-                users[i] = hashlib.sha256(x.encode('utf-8')).hexdigest()[:8]
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
         
         if args.obf_hosts != "":
             # atlas ssh host obfuscation
@@ -329,7 +337,7 @@ def main(args):
 
             if args.obf_users:
                 # condor user hash
-                myobj.update([('users',hashlib.sha256(myobj.get('users').encode('utf-8')).hexdigest()[:8])])
+                myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
 
             if args.debug_local:
                 # For local debugging
@@ -352,7 +360,7 @@ def main(args):
             myobj.update(job)
             if args.obf_users:
                 # condor user hash
-                myobj.update([('users',hashlib.sha256(myobj.get('users').encode('utf-8')).hexdigest()[:8])])
+                myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
             
             if args.debug_local:
                 # For local debugging
