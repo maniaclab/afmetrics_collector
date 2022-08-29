@@ -27,7 +27,7 @@ def get_condor_jobs():
 
     #'-completedsince', str(now - since_insecs) not working?
     try:
-        with subprocess.Popen(['condor_q',
+        with subprocess.Popen(['condor_q', '-all',
                                #'-completedsince', str(now - since_insecs),
                                '-constraint', constraint,
                                '-format',"%s ", 'Owner',
