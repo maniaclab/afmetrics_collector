@@ -17,6 +17,9 @@ def get_ssh_users():
         with subprocess.Popen(['who'], stdout=subprocess.PIPE) as process:
             any(users.append(l.split()[0].decode("utf-8")) for l in process.stdout.readlines()
                     if l.split()[0].decode("utf-8") not in users)
+        with subprocess.Popen(['/usr/bin/last -s -5min | head -n -2'], shell=True, stdout=subprocess.PIPE) as process:
+            any(users.append(l.split()[0].decode("utf-8")) for l in process.stdout.readlines()
+                    if l.split()[0].decode("utf-8") not in users)
     except Exception as error:
         _logger.error(error)
 
