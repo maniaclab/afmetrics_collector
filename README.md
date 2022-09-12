@@ -155,11 +155,11 @@ Host total and available memory as reported by __psutil.virtual_memory()__. In b
 
 A typical full installation will collect ssh, batch (condor), jupyter, and host metrics and the command to run may look something like this:
 
-`afmetrics_collector -v -sjb --host -t "<token>"`
+`afmetrics_collector -v -sjb --host -t "<token>" -c "<cluster>"`
 
 The associated cron job to run this every 5 minutes (the default and recommended interval) may look like this:
 
-`*/5 * * * * root (KUBECONFIG=/etc/kubernetes/admin.conf /usr/local/bin/afmetrics_collector -v -sjb --host -t "<token>") >> /var/log/afmetrics/afmetrics.log 2>&1`
+`*/5 * * * * root (KUBECONFIG=/etc/kubernetes/admin.conf /usr/local/bin/afmetrics_collector -v -sjb --host -t "<token>" -c "<cluster>") >> /var/log/afmetrics/afmetrics.log 2>&1`
 
 ## Advanced Usage
 
@@ -167,7 +167,7 @@ The associated cron job to run this every 5 minutes (the default and recommended
 
 For debugging, you can opt to output everything to a local file instead of sending it to the logstash server with the `-d` flag:
 
-`afmetrics_collector -d -vv -sjb --host -t <token>`  
+`afmetrics_collector -d -vv -sjb --host -t <token> -c "<cluster>"`  
 This will output .json files in your current directory, and very verbose (`-vv`) logs in `/var/log/afmetrics/afmetrics.log`.  
 I would recommend to run this from within the `/var/log/afmetrics` directory so all the stuff to look at is in one place
 
