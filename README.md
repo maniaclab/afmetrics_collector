@@ -169,7 +169,8 @@ For debugging, you can opt to output everything to a local file instead of sendi
 
 `afmetrics_collector -d -vv -sjb --host -t <token> -c "<cluster>"`  
 This will output .json files in your current directory, and very verbose (`-vv`) logs in `/var/log/afmetrics/afmetrics.log`.  
-I would recommend to run this from within the `/var/log/afmetrics` directory so all the stuff to look at is in one place
+I would recommend to run this from within the `/var/log/afmetrics` directory so all the stuff to look at is in one place.  
+A **token** is not necessary for debugging, so you can use `-d` before you have one
 
 ### Data Obfuscation and security
 
@@ -177,7 +178,7 @@ For sites that wish to share usage metrics, but not info such as usernames and h
 
 > `-o` : user name obfuscation
 >
-> `-O` : host name obfuscation, followed by a string domanin name, ex.: `-O 'bnl.gov'`
+> `-O` : host name obfuscation, followed by a string domain name, ex.: `-O 'bnl.gov'`
 >
 > `-z` : (optional) salt to make user obfuscation more secure, ex.: `-o -z '5tKC%>f&%#hg'`
 
