@@ -3,6 +3,36 @@
 AF Metrics Collector collects various metrics about user jobs from kubernetes,
 batch systems and send the collected metrics as json documents to an https endpoint.
 
+## Installation
+
+### Prerequisites:
+
+- Have installed `python3` and `pip3` system packages
+
+- Install some python dependencies for afmetrics_collector: `pip3 install -U setuptools setuptools_scm wheel importlib_metadata`
+
+- Create a directory for the log files: `mkdir /var/log/afmetrics`
+
+### Install afmetrics_collector:
+
+Clone the git repo onto your server
+
+Navigate to the project directory
+
+(optional) Make changes to setup.cfg
+
+Build with python3: `python3 setup.py bdist_wheel`
+
+Install with pip3: `pip3 install dist/afmetrics_collector-0.0*.whl`
+
+## Uninstallation
+
+`pip3 uninstall afmetrics-collector`
+
+## Sending documents
+
+All the documents should be __POST__ to <https://af.atlas-ml.org>.
+
 ## Documents
 
 Each document has to have a token field. To get a token for your AF, please contact Ilija Vukotic.
@@ -119,36 +149,6 @@ Host total and available memory as reported by __psutil.virtual_memory()__. In b
 }
 ```
 
-## Sending documents
-
-All the documents should be __POST__ to <https://af.atlas-ml.org>.
-
-## Installation
-
-### Prerequisites:
-
-- Have installed `python3` and `pip3` system packages
-
-- Install some python dependencies for afmetrics_collector: `pip3 install -U setuptools setuptools_scm wheel importlib_metadata`
-
-- Create a directory for the log files: `mkdir /var/log/afmetrics`
-
-### Install afmetrics_collector
-
-Clone the git repo onto your server
-
-Navigate to the project directory
-
-(optional) Make changes to setup.cfg
-
-Build with python3: `python3 setup.py bdist_wheel`
-
-Install with pip3: `pip3 install dist/afmetrics_collector-0.0*.whl`
-
-## Uninstallation
-
-`pip3 uninstall afmetrics-collector`
-
 ## Usage and examples
 
 **In the following replace all instances of `<token>` with your actual token, likewise for mentions of `<cluster>`, `<domain>`, `<salt>`, and so on. These are placeholders for your real values**
@@ -168,7 +168,7 @@ The associated cron job to run this every 5 minutes (the default and recommended
 For debugging, you can opt to output everything to a local file instead of sending it to the logstash server with the `-d` flag:
 
 `afmetrics_collector -d -vv -sjb --host -t <token>`  
-will output .json files in your current directory, and very verbose (`-vv`) logs in `/var/log/afmetrics/afmetrics.log`.  
+This will output .json files in your current directory, and very verbose (`-vv`) logs in `/var/log/afmetrics/afmetrics.log`.  
 I would recommend to run this from within the `/var/log/afmetrics` directory so all the stuff to look at is in one place
 
 ### Data Obfuscation and security
@@ -176,10 +176,12 @@ I would recommend to run this from within the `/var/log/afmetrics` directory so 
 For sites that wish to share usage metrics, but not info such as usernames and hostnames, data obfuscation flags `-o`, `-O`, and `-z` have been added:
 
 > `-o` : user name obfuscation
-> `-O` : host name obfuscation (followed by a string domanin name, ex.: -O 'bnl.gov')
-> `-z` : (optional) salt to make user obfuscation more secure, ex.: -o -z '5tKC%>f&%#hg'
+>
+> `-O` : host name obfuscation, followed by a string domanin name, ex.: `-O 'bnl.gov'`
+>
+> `-z` : (optional) salt to make user obfuscation more secure, ex.: `-o -z '5tKC%>f&%#hg'`
 
-Afmetrics_collector can be run as users other than root. If you wish to do this, make sure the ownership/permissions of the `/var/log/afmetrics` directory is such that the desired user can write to it
+Afmetrics_collector can be run as users other than **root**. If you wish to do this, make sure the ownership/permissions of the `/var/log/afmetrics` directory is such that the desired user can write to it
 
 A full example using all of the obfuscation and a local debug running as user 'nobody' might look something like this:
 
@@ -196,11 +198,11 @@ HOME=/var/log/afmetrics
 
 #### How it works: 
 
-Username obfuscation simply MD5 hashes username and truncates to the last 8 characters. Salt can be added to the username hash to strengthen against rainbow table attacks. If salt is used, make sure to use the same salt value across all your login nodes, otherwise the same user will be counted as a unique user.
+**Username obfuscation** simply MD5 hashes username and truncates to the last 8 characters. Salt can be added to the username hash to strengthen against rainbow table attacks. **If salt is used, make sure to use the same salt value across all your login nodes, otherwise the same user will be counted as a unique user if they log in on many nodes.**
 
-Hostname obfuscation is very basic so may need to be modified to suit your facility. It simply takes your hostname, strips off everything except the numbers, and prepends 'atlas' and appends your provided domain name string.  
-For example if your host is called `condor123.example.edu` and you call the hostname obfuscation flag with `-O bnl.gov` you will get `atlas123.bnl.gov` as your obfuscated domain name.  
-Provided the numbers from all your login hosts are different you should end up with no collisions. Modify in src/afmetrics_collector/skeleton.py to suit your needs
+**Hostname obfuscation** is very basic so may need to be modified to suit your facility. It simply takes your hostname, strips off everything except the numbers, and prepends **'atlas'** and appends **your provided domain name string**.  
+For example if your host is called `condor123.example.edu` and you call the hostname obfuscation flag with `-O "bnl.gov"` you will get `atlas123.bnl.gov` as your obfuscated domain name.  
+Provided the numbers from all your login hosts are different you should end up with no collisions. Modify in `src/afmetrics_collector/skeleton.py` to suit your needs
 
 Note
 ====
