@@ -21,6 +21,12 @@ import sys
 import socket
 import requests
 
+# needed for debug
+import json
+
+# needed for user obfuscation
+import hashlib
+
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
@@ -51,7 +57,7 @@ def parse_args(args):
     Returns:
       :obj:`argparse.Namespace`: command line parameters namespace
     """
-    parser = argparse.ArgumentParser(description="Just a Fibonacci demonstration")
+    parser = argparse.ArgumentParser(description="Help for afmetrics_collector")
     parser.add_argument(
         "--version",
         action="version",
@@ -63,28 +69,32 @@ def parse_args(args):
         action="store_true",
         dest="host",
         help="collect ssh metrics",
-        default=False)
+        default=False
+    )
     parser.add_argument(
         "-s",
         "--ssh",
         action="store_true",
         dest="ssh",
         help="collect ssh metrics",
-        default=False)
+        default=False
+    )
     parser.add_argument(
         "-j",
         "--jupyter",
         action="store_true",
         dest="jupyter",
         help="collect jupyter metrics",
-        default=False)
+        default=False
+    )
     parser.add_argument(
         "-b",
         "--batch",
         action="store_true",
         dest="batch",
         help="collect batch(condor) metrics",
-        default=False)
+        default=False
+    )
     parser.add_argument(
         "-n",
         "--namespace",
@@ -99,7 +109,8 @@ def parse_args(args):
         dest="label",
         help="label of jupyter pods",
         default="owner",
-        type=str)
+        type=str
+    )
     parser.add_argument(
         "-t",
         "--token",
@@ -140,6 +151,38 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
+    parser.add_argument(
+        "-o",
+        "--obfuscate-users",
+        action="store_true",
+        dest="obf_users",
+        help="hash the usernames before sending to logstash",
+        default=False,
+    )
+    parser.add_argument(
+        "-O",
+        "--obfuscate-hosts",
+        dest="obf_hosts",
+        help="alter the hostnames before sending to logstash (usage -O \"<domain_name>\")",
+        default="",
+        type=str,
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        dest="debug_local",
+        help="output to a local json file in current directory",
+        default=False,
+    )
+    parser.add_argument(
+        "-z",
+        "--salt",
+        dest="salt",
+        help="add salt to user name hash for added security (usage --salt \"<salt>\")",
+        default="",
+        type=str,
+    )
     return parser.parse_args(args)
 
 
@@ -175,57 +218,111 @@ def main(args):
         users=get_jupyter_users(args.ns, args.label)
         _logger.info("af jupyter-ml users: %s", users)
 
+        if args.obf_users:
+            # jupyter user hash
+            for i, x in enumerate(users):
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
+            
         myobj = {'token': token,
                  'kind': 'jupyter-ml',
                  'cluster': cluster,
                  'jupyter_user_count': len(users),
                  'users': users}
-        _logger.debug("post to logstash: %s", myobj)
-        resp = requests.post(url, json=myobj)
-        _logger.debug("post status_code:%d",resp.status_code)
+        
+        if args.debug_local:
+            # For local debugging
+            json_object = json.dumps(myobj, indent=4)
+            with open("jupyter-debug.json", "a") as outfile:
+                outfile.write(json_object)
+        else: # post to logstash
+            _logger.debug("post to logstash: %s", myobj)
+            resp = requests.post(url, json=myobj)
+            _logger.debug("post status_code:%d",resp.status_code)
 
         _logger.info("collecting jupyter-coffea metrics")
         users=get_jupyter_users("coffea-casa", "jhub_user")
         _logger.info("af jupyter-coffea users: %s", users)
+
+        if args.obf_users:
+            # jupyter-coffea user hash
+            for i, x in enumerate(users):
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
 
         myobj = {'token': token,
                  'kind': 'jupyter-coffea',
                  'cluster': cluster,
                  'jupyter_user_count': len(users),
                  'users': users}
-        _logger.debug("post to logstash: %s", myobj)
-        resp = requests.post(url, json=myobj)
-        _logger.debug("post status_code:%d",resp.status_code)
+        if args.debug_local:
+            # For local debugging
+            json_object = json.dumps(myobj, indent=4)
+            with open("jupyter-debug.json", "a") as outfile:
+                outfile.write(json_object)
+        else: # post to logstash
+            _logger.debug("post to logstash: %s", myobj)
+            resp = requests.post(url, json=myobj)
+            _logger.debug("post status_code:%d",resp.status_code)
 
     if args.ssh:
         _logger.info("collecting ssh metrics")
         users=get_ssh_users()
         _logger.info("af ssh users: %s", users)
 
+        if args.obf_users:
+            # ssh user hash
+            for i, x in enumerate(users):
+                users[i] = hashlib.sha256((args.salt+x).encode('utf-8')).hexdigest()[:8]
+        
+        if args.obf_hosts != "":
+            # atlas ssh host obfuscation
+            ssh_host_name = ''.join(['atlas',''.join([n for n in socket.gethostname() if n.isdigit()]),".",args.obf_hosts])
+        else:
+            ssh_host_name = socket.gethostname()
+
         myobj = {'token': token,
                  'kind': 'ssh',
                  'cluster': cluster,
-                 'login_node': socket.gethostname(),
+                 'login_node': ssh_host_name,
                  'ssh_user_count': len(users),
                  'users': users}
-        _logger.debug("post to logstash: %s", myobj)
-        resp = requests.post(url, json=myobj)
-        _logger.debug("post status_code:%d",resp.status_code)
+
+        if args.debug_local:
+            # For local debugging
+            json_object = json.dumps(myobj, indent=4)
+            with open("ssh.json", "a") as outfile:
+                outfile.write(json_object)
+        else: # post to logstash
+            _logger.debug("post to logstash: %s", myobj)
+            resp = requests.post(url, json=myobj)
+            _logger.debug("post status_code:%d",resp.status_code)
+        
 
     if args.host:
         _logger.info("collecting host metrics")
+        if args.obf_hosts != "":
+            # atlas host obfuscation
+            login_host_name = ''.join(['atlas',''.join([n for n in socket.gethostname() if n.isdigit()]),".",args.obf_hosts])
+        else:
+            login_host_name = socket.gethostname()
+
         header = {'token': token,
                   'kind': 'host',
                   'cluster': cluster,
-                  'login_node': socket.gethostname()}
+                  'login_node': login_host_name }
 
         metrics = get_host_metrics(header=header)
         _logger.debug("af host metrics: %s", metrics)
 
         for metric in metrics:
-            _logger.debug("post to logstash: %s", metric)
-            resp = requests.post(url, json=metric)
-            _logger.debug("post status_code:%d",resp.status_code)
+            if args.debug_local:
+                # For local debugging
+                json_object = json.dumps(metric, indent=4)
+                with open("host.json", "a") as outfile:
+                    outfile.write(json_object)
+            else: # post to logstash
+                _logger.debug("post to logstash: %s", metric)
+                resp = requests.post(url, json=metric)
+                _logger.debug("post status_code:%d",resp.status_code)
 
     if args.batch:
         _logger.info("collecting batch metrics - current users")
@@ -237,9 +334,20 @@ def main(args):
                      'kind': 'condorjob',
                      'cluster': cluster}
             myobj.update(job)
-            _logger.debug("post to logstash: %s", myobj)
-            resp = requests.post(url, json=myobj)
-            _logger.debug("post status_code:%d",resp.status_code)
+
+            if args.obf_users:
+                # condor user hash
+                myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
+
+            if args.debug_local:
+                # For local debugging
+                json_object = json.dumps(myobj, indent=4)
+                with open("condor.json", "a") as outfile:
+                    outfile.write(json_object)
+            else: # post to logstash
+                _logger.debug("post to logstash: %s", myobj)
+                resp = requests.post(url, json=myobj)
+                _logger.debug("post status_code:%d",resp.status_code)
 
         _logger.info("collecting batch metrics - job history")
         jobs=get_condor_history(since_insecs=360)
@@ -250,9 +358,19 @@ def main(args):
                      'cluster': cluster,
                      'state': 'finished'}
             myobj.update(job)
-            _logger.debug("post to logstash: %s", myobj)
-            resp = requests.post(url, json=myobj)
-            _logger.debug("post status_code:%d",resp.status_code)
+            if args.obf_users:
+                # condor user hash
+                myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
+            
+            if args.debug_local:
+                # For local debugging
+                json_object = json.dumps(myobj, indent=4)
+                with open("condor.json", "a") as outfile:
+                    outfile.write(json_object)
+            else: # post to logstash
+                _logger.debug("post to logstash: %s", myobj)
+                resp = requests.post(url, json=myobj)
+                _logger.debug("post status_code:%d",resp.status_code)
 
 
 
