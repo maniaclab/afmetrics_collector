@@ -163,6 +163,14 @@ The associated cron job to run this every 5 minutes (the default and recommended
 
 ## Advanced Usage
 
+### Group Filtering
+
+Useful on systems that may serve as login nodes for many users unaffiliated with what you are interested in, add the `-g` or `--group` flag to filter for a specific group
+
+For example, if you are only interested in ssh logins, jupyter, and batch jobs of users in group 'usatlas', the command may look like the following:
+
+`afmetrics_collector -vv -sjb --host -t <token> -c "<cluster>" -g "usatlas"`
+
 ### Debugging
 
 For debugging, you can opt to output everything to a local file instead of sending it to the logstash server with the `-d` flag:
