@@ -27,6 +27,10 @@ import json
 # needed for user obfuscation
 import hashlib
 
+# needed for group filtering
+import grp
+import pwd
+
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
@@ -183,6 +187,14 @@ def parse_args(args):
         default="",
         type=str,
     )
+    parser.add_argument(
+        "-g",
+        "--group",
+        dest="group",
+        help="optional group to filter for. Useful on multi user/group machines (usage -g \"<groupname>\")",
+        default="",
+        type=str,
+    )
     return parser.parse_args(args)
 
 
@@ -218,6 +230,15 @@ def main(args):
         users=get_jupyter_users(args.ns, args.label)
         _logger.info("af jupyter-ml users: %s", users)
 
+        if args.group != "":
+            # group filter
+            for i, x in enumerate(users[:]):
+                groups = [g.gr_name for g in grp.getgrall() if x in g.gr_mem]
+                gid = pwd.getpwnam(x).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if args.group not in groups:
+                    users.remove(x)
+
         if args.obf_users:
             # jupyter user hash
             for i, x in enumerate(users):
@@ -243,6 +264,15 @@ def main(args):
         users=get_jupyter_users("coffea-casa", "jhub_user")
         _logger.info("af jupyter-coffea users: %s", users)
 
+        if args.group != "":
+            # group filter
+            for i, x in enumerate(users[:]):
+                groups = [g.gr_name for g in grp.getgrall() if x in g.gr_mem]
+                gid = pwd.getpwnam(x).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if args.group not in groups:
+                    users.remove(x)
+
         if args.obf_users:
             # jupyter-coffea user hash
             for i, x in enumerate(users):
@@ -267,6 +297,15 @@ def main(args):
         _logger.info("collecting ssh metrics")
         users=get_ssh_users()
         _logger.info("af ssh users: %s", users)
+
+        if args.group != "":
+            # group filter
+            for i, x in enumerate(users[:]):
+                groups = [g.gr_name for g in grp.getgrall() if x in g.gr_mem]
+                gid = pwd.getpwnam(x).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if args.group not in groups:
+                    users.remove(x)
 
         if args.obf_users:
             # ssh user hash
@@ -335,6 +374,14 @@ def main(args):
                      'cluster': cluster}
             myobj.update(job)
 
+            if args.group != "":
+                # group filter
+                groups = [g.gr_name for g in grp.getgrall() if myobj.get('users') in g.gr_mem]
+                gid = pwd.getpwnam(myobj.get('users')).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if args.group not in groups:
+                    continue
+
             if args.obf_users:
                 # condor user hash
                 myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
@@ -358,6 +405,15 @@ def main(args):
                      'cluster': cluster,
                      'state': 'finished'}
             myobj.update(job)
+            
+            if args.group != "":
+                # group filter
+                groups = [g.gr_name for g in grp.getgrall() if myobj.get('users') in g.gr_mem]
+                gid = pwd.getpwnam(myobj.get('users')).pw_gid
+                groups.append(grp.getgrgid(gid).gr_name)
+                if args.group not in groups:
+                    continue
+            
             if args.obf_users:
                 # condor user hash
                 myobj.update([('users',hashlib.sha256((args.salt+myobj.get('users')).encode('utf-8')).hexdigest()[:8])])
