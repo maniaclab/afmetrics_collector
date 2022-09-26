@@ -34,7 +34,7 @@ import pwd
 from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
-from afmetrics_collector.ssh import get_ssh_users
+from afmetrics_collector.ssh import get_ssh_users, get_ssh_history
 from afmetrics_collector.condor import get_condor_history, get_condor_jobs
 from afmetrics_collector.host import get_host_metrics
 
@@ -81,6 +81,14 @@ def parse_args(args):
         action="store_true",
         dest="ssh",
         help="collect ssh metrics",
+        default=False
+    )
+    parser.add_argument(
+        "-S",
+        "--ssh-history",
+        action="store_true",
+        dest="ssh_history",
+        help="collect ssh metrics from last 5 minutes (note: requires newer version of 'last' with -s option)",
         default=False
     )
     parser.add_argument(
@@ -297,6 +305,9 @@ def main(args):
         _logger.info("collecting ssh metrics")
         users=get_ssh_users()
         _logger.info("af ssh users: %s", users)
+
+        if args.ssh_history:
+            users.extend(get_ssh_history())
 
         if args.group != "":
             # group filter
