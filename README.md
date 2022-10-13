@@ -163,6 +163,22 @@ The associated cron job to run this every 5 minutes (the default and recommended
 
 ## Advanced Usage
 
+### SSH history
+
+**Only usable for systems with a version of `last` command that include `-s` option**
+
+In addition to ssh users currently logged in, adding the `-S` flag will include users who logged in within the last 5 minutes as well (to account for a possible edge case which includes users that log in and out really fast)
+
+`afmetrics_collector -vv -sjb -S --host -t <token> -c "<cluster>"
+
+### Group Filtering
+
+Useful on systems that may serve as login nodes for many users unaffiliated with what you are interested in, add the `-g` or `--group` flag to filter for a specific group
+
+For example, if you are only interested in ssh logins, jupyter, and batch jobs of users in group 'atlas', the command may look like the following:
+
+`afmetrics_collector -vv -sjb --host -t <token> -c "<cluster>" -g "atlas"`
+
 ### Debugging
 
 For debugging, you can opt to output everything to a local file instead of sending it to the logstash server with the `-d` flag:
@@ -184,9 +200,9 @@ For sites that wish to share usage metrics, but not info such as usernames and h
 
 Afmetrics_collector can be run as users other than **root**. If you wish to do this, make sure the ownership/permissions of the `/var/log/afmetrics` directory is such that the desired user can write to it
 
-A full example using all of the obfuscation and a local debug running as user 'nobody' might look something like this:
+A full example using all of the obfuscation and a local debug running as user 'nobody', along with a group filter might look something like this:
 
-`su -s /bin/bash -c '(/usr/local/bin/afmetrics_collector -d -vv -sbj --host -t "<token>" -o -O "<domain>" -c "<cluster>" -z "<salt>") 2>&1' nobody`
+`su -s /bin/bash -c '(/usr/local/bin/afmetrics_collector -d -vv -sbj --host -t "<token>" -o -O "<domain>" -c "<cluster>" -z "<salt>" -g "<group>") 2>&1' nobody`
 
 The associated cron `/etc/cron.d/afmetrics.cron` running all of the above in non-debug mode may looks like this:
 
@@ -194,7 +210,7 @@ The associated cron `/etc/cron.d/afmetrics.cron` running all of the above in non
 ### Afmetrics Collector ###
 SHELL=/bin/bash
 HOME=/var/log/afmetrics
-*/5 * * * * nobody (/usr/local/bin/afmetrics_collector -vv -sbj --host  -t "<token>" -o -O "<domain>" -c "<cluster>" -z "<salt>") >> /var/log/afmetrics/afmetrics.log 2>&1
+*/5 * * * * nobody (/usr/local/bin/afmetrics_collector -vv -sbj --host  -t "<token>" -o -O "<domain>" -c "<cluster>" -z "<salt>" -g "<group>") >> /var/log/afmetrics/afmetrics.log 2>&1
 ```
 
 #### How it works: 
