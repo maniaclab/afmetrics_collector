@@ -35,7 +35,7 @@ from afmetrics_collector import __version__
 
 from afmetrics_collector.jupyter import get_jupyter_users
 from afmetrics_collector.ssh import get_ssh_users, get_ssh_history
-from afmetrics_collector.condor import get_condor_history, get_condor_jobs
+from afmetrics_collector.condor import get_condor_history, get_condor_jobs, get_condor_queue_summery
 from afmetrics_collector.host import get_host_metrics
 
 __author__ = "Fengping Hu"
@@ -202,6 +202,15 @@ def parse_args(args):
         help="optional group to filter for. Useful on multi user/group machines (usage -g \"<groupname>\")",
         default="",
         type=str,
+    )
+    parser.add_argument(
+        "-q",
+        "--queue",
+        dest="queue",
+        action='append',
+        help="condor queue summery to watch for (usage -q \"queuename:constraint\") e.g. -q all: -q short:'queue==\"short\"'",
+        default=["all:", 'short:queue=="short"'],
+        #type=str,
     )
     return parser.parse_args(args)
 
@@ -375,6 +384,34 @@ def main(args):
                 _logger.debug("post status_code:%d",resp.status_code)
 
     if args.batch:
+        queues=[]
+        if args.queue != "":
+            for queue in args.queue:
+                print(queue)
+                queues.append(dict(zip(["name","constraint"], queue.split(":"))))
+            #    continue
+
+        _logger.info("collecting batch metrics - queue summery")
+        queues=get_condor_queue_summery(queues=queues)
+        _logger.debug("af queue summery: %s", queues)
+
+        for queue in queues:
+            myobj = {'token': token,
+                     'kind': 'condorqueue',
+                     'cluster': cluster}
+            myobj.update(queue)
+
+            if args.debug_local:
+                # For local debugging
+                json_object = json.dumps(myobj, indent=4)
+                with open("condor.json", "a") as outfile:
+                    outfile.write(json_object)
+            else: # post to logstash
+                _logger.debug("post to logstash: %s", myobj)
+                resp = requests.post(url, json=myobj)
+                _logger.debug("post status_code:%d",resp.status_code)
+
+
         _logger.info("collecting batch metrics - current users")
         jobs=get_condor_jobs()
         _logger.debug("af running batch jobs: %s", jobs)

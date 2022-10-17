@@ -7,9 +7,27 @@ Please install the pick library before running this example.
 import subprocess
 import logging
 import time
+import json
 
 _logger = logging.getLogger(__name__)
 
+def get_condor_queue_summery(queues=[{"name": 'all', "constraint": ""},
+                                     {"name": 'short', "constraint": 'queue == "short"'}]):
+    summery = []
+    for queue in queues:
+        
+        cmd = ['condor_q', '-all', '-totals', '-json']
+        if queue["constraint"]:
+            cmd = cmd + ["-constraint", queue["constraint"]]
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
+            result = json.loads(process.stdout.read())
+            queue_status = {"queue": queue["name"],
+                            "idle": result[0]["Idle"],
+                            "running": result[0]["Running"],
+                            "held": result[0]["Held"]}
+            summery.append(queue_status)
+
+    return summery
 
 def get_condor_jobs():
 
@@ -68,7 +86,7 @@ def get_condor_history(job_status=4, since_insecs=360):
     return jobs
 
 def main():
-    get_condor_jobs()
+    get_condor_queue_summery()
 
 if __name__ == '__main__':
     main()
