@@ -209,7 +209,7 @@ def parse_args(args):
         dest="queue",
         action='append',
         help="condor queue summery to watch for (usage -q \"queuename:constraint\") e.g. -q all: -q short:'queue==\"short\"'",
-        default=["all:", 'short:queue=="short"'],
+        default=[],
         #type=str,
     )
     return parser.parse_args(args)
@@ -392,10 +392,10 @@ def main(args):
             #    continue
 
         _logger.info("collecting batch metrics - queue summery")
-        queues=get_condor_queue_summery(queues=queues)
-        _logger.debug("af queue summery: %s", queues)
+        queue_status = get_condor_queue_summery(queues=queues)
+        _logger.debug("af queue summery: %s", queue_status)
 
-        for queue in queues:
+        for queue in queue_status:
             myobj = {'token': token,
                      'kind': 'condorqueue',
                      'cluster': cluster}
@@ -407,7 +407,7 @@ def main(args):
                 with open("condor.json", "a") as outfile:
                     outfile.write(json_object)
             else: # post to logstash
-                _logger.debug("post to logstash: %s", myobj)
+                _logger.info("post to logstash: %s", myobj)
                 resp = requests.post(url, json=myobj)
                 _logger.debug("post status_code:%d",resp.status_code)
 
