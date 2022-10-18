@@ -38,6 +38,22 @@ All the documents should be __POST__ to <https://af.atlas-ml.org>.
 Each document has to have a token field. To get a token for your AF, please contact Ilija Vukotic.
 All documents get timestamped on the receiving end so no need to send them. Here an example of each metric.
 
+
+### Batch queue status
+
+this is obtained by parsing output of __condor_q__ command.
+
+```json
+{  
+    "kind": "condorqueue",
+    "cluster": "UC-AF",
+    "queue": "all",
+    "idle": 1995,
+    "running": 1022,
+    "held": 3
+}
+```
+
 ### SSH users
 
 this is obtained by parsing output of __who__ command.
@@ -162,6 +178,12 @@ The associated cron job to run this every 5 minutes (the default and recommended
 `*/5 * * * * root (KUBECONFIG=/etc/kubernetes/admin.conf /usr/local/bin/afmetrics_collector -v -sjb --host -t "<token>" -c "<cluster>") >> /var/log/afmetrics/afmetrics.log 2>&1`
 
 ## Advanced Usage
+
+### Batch queue status reporting
+
+By default no batch queue status is reported. To add queue status reporting, add the queue in this format "queuename:condor query contraint expression". For example the following command will collect status of two queues, the all inclusive queue and the short queue which can be queried with queue=="short" constraint.
+
+`afmetrics_collector -vv -b -t <token> -c "<cluster>" -q all: -q 'short:queue=="short"'  
 
 ### SSH history
 
