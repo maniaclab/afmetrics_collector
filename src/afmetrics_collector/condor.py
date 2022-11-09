@@ -15,17 +15,27 @@ def get_condor_queue_summery(queues=[{"name": 'all', "constraint": ""},
                                      {"name": 'short', "constraint": 'queue == "short"'}]):
     summery = []
     for queue in queues:
-        
+        queue_status = {}
         cmd = ['condor_q', '-all', '-totals', '-json']
         if queue["constraint"]:
             cmd = cmd + ["-constraint", queue["constraint"]]
         with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
             result = json.loads(process.stdout.read())
-            queue_status = {"queue": queue["name"],
-                            "idle": result[0]["Idle"],
-                            "running": result[0]["Running"],
-                            "held": result[0]["Held"]}
-            summery.append(queue_status)
+            queue_status.update({"queue": queue["name"],
+                                 "idle": result[0]["Idle"],
+                                 "running": result[0]["Running"],
+                                 "held": result[0]["Held"]})
+
+        cmd = ['condor_q', '-all', '-run', '-autoformat', 'CpusProvisioned', 'MemoryProvisioned', '-json']
+        if queue["constraint"]:
+            cmd = cmd + ["-constraint", queue["constraint"]]
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
+            result = json.loads(process.stdout.read())
+            allocated_cores = sum(int(item['CpusProvisioned']) for item in result)
+            allocated_mem = sum(int(item['MemoryProvisioned']) for item in result)
+            queue_status.update({"allocated_cores": allocated_cores, "allocated_mem": allocated_mem})
+
+        summery.append(queue_status)
 
     return summery
 

@@ -50,7 +50,9 @@ this is obtained by parsing output of __condor_q__ command.
     "queue": "all",
     "idle": 1995,
     "running": 1022,
-    "held": 3
+    "held": 3,
+    "allocated_cores": 966,
+    "allocated_mem": 4145152
 }
 ```
 

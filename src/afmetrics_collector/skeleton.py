@@ -387,7 +387,6 @@ def main(args):
         queues=[]
         if args.queue != "":
             for queue in args.queue:
-                print(queue)
                 queues.append(dict(zip(["name","constraint"], queue.split(":"))))
             #    continue
 
