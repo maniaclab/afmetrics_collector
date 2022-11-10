@@ -29,11 +29,14 @@ def get_condor_queue_summery(queues=[{"name": 'all', "constraint": ""},
         cmd = ['condor_q', '-all', '-run', '-autoformat', 'CpusProvisioned', 'MemoryProvisioned', '-json']
         if queue["constraint"]:
             cmd = cmd + ["-constraint", queue["constraint"]]
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
-            result = json.loads(process.stdout.read())
-            allocated_cores = sum(int(item['CpusProvisioned']) for item in result)
-            allocated_mem = sum(int(item['MemoryProvisioned']) for item in result)
-            queue_status.update({"allocated_cores": allocated_cores, "allocated_mem": allocated_mem})
+        try:
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
+                result = json.loads(process.stdout.read())
+                allocated_cores = sum(int(item.get('CpusProvisioned',0)) for item in result) 
+                allocated_mem = sum(int(item.get('MemoryProvisioned',0)) for item in result) 
+                queue_status.update({"allocated_cores": allocated_cores, "allocated_mem": allocated_mem})
+        except Exception as error:
+            _logger.error(error)
 
         summery.append(queue_status)
 
